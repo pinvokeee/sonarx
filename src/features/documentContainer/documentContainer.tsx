@@ -1,12 +1,12 @@
-import { Button, styled } from "@mui/material";
-import { useDocumentAction, useGetDocumentPageAction } from "./documentState";
-import MonacoEditor from "../../components/monacoEditor/MonacoEditor";
-import LexicalEditor from "../../components/LexicalEditor/Editor";
-import { useCallback, useState } from "react";
+import { styled } from "@mui/material";
+import { useEffect } from "react";
 import HtmlEditorContainer from "./HtmlEditorContainer";
-// import { useDocumentAction, useGetDocumentPageAction } from "./documentState";
-// import LexEditor from "../../components/lexEditor/LexEditor";
-// import { Editor } from "../../components/monacoEditor/MonacoEditor";
+import { useDocumentSetterActions, useDocuments } from "../../common/states/document";
+import { DocumentPage, IReturnState } from "../../common/types";
+import { PropertyEditor } from "./PropertyEditor";
+import { useWysiwygState } from "./hook/useWysiwyg";
+import { useEditHook } from "./hook/useEditHook";
+import WysiwygEditor from "./WysiwygEditor";
 
 const Container = styled("div")(({theme}) => (
     {
@@ -23,53 +23,50 @@ const DocumentView = styled("iframe")(({theme}) => (
     }
 ));
 
-export default function DocumentContainer() {
+const EditContainer = styled("div")(({theme}) => (
+    {
+        height: "100%",
+        overflow: "hidden",
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+    }
+));
 
-    const getDocAction = useGetDocumentPageAction();
-    const viewDocumentId = getDocAction.selectedDocumentPageId;
-    const page = getDocAction.useGetDocumentPage(viewDocumentId as string);
-    const content = page ? page.content : "";
+export default function DocumentContainer( props: { documentId: string } ) {
 
-    const actions = useDocumentAction();
+    console.log("RENDER", "DOC");
 
-    // const aa = useDocumentAction().setSelectionDocumentPage()
+    const useEdit = useEditHook( { documentId: props.documentId });
+    const { isEditableMode, applyDocumentPage, editPage, contentText, onChange, onChangeWysiwyg } = useEdit;
 
-    const [isChange, setIsChange] = useState(false);
+    const handleSaveProperty = async (newPage: DocumentPage) => {
+        await applyDocumentPage(newPage);
+    } 
 
-    const click = () => {
-        const aa = actions.newDocumentPage({ id: "te", title: "test", contentType: "html", content: "new!", parentId: undefined });
+    const getEditComponent = (type: string) => {
+
+        if (type == "lexHtml") return (
+            <WysiwygEditor contentText={contentText} onChangeWysiwyg={onChangeWysiwyg}></WysiwygEditor>
+        );
         
+        if (type == "html") return (
+            <HtmlEditorContainer contentText={contentText} onChange={onChange}></HtmlEditorContainer>
+        );
     }
 
-    const handleContentChange = useCallback((value: string) =>{
+    if (isEditableMode) {
 
-        
-        console.log(value);
+        if (editPage == undefined) return <></>
 
-        setIsChange(true);
-
-    }, [])
-    
-    if (getDocAction.isEditableMode) {
-
-        if (page == undefined) return <></>
-
-        if (page.contentType == "lexHtml") {
-            return <>
-                <LexicalEditor></LexicalEditor>
-            </>
-        }
-
-        if (page.contentType == "html") {
-            return (
-                <HtmlEditorContainer content={content} onContentChange={handleContentChange}></HtmlEditorContainer>
-            )
-        }
-
+        return <>
+        <EditContainer>
+            { getEditComponent(editPage.contentType) }
+            <PropertyEditor key={editPage.id} page={editPage} onSave={handleSaveProperty}></PropertyEditor>
+        </EditContainer>
+        </>
     }
 
     return <Container>
-        <DocumentView srcDoc={content}></DocumentView>
-        {/* <div dangerouslySetInnerHTML={{ __html: content }}></div> */}
+        <DocumentView srcDoc={editPage?.content}></DocumentView>
     </Container>
 }

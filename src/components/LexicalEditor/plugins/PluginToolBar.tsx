@@ -14,7 +14,7 @@ import { $generateHtmlFromNodes, $generateNodesFromDOM } from '@lexical/html';
 const ToolBarButton = styled(Button)(({theme}) => ({
 
     '&.MuiButton-root': {
-        "min-width": "0px",
+        "minWidth": "0px",
     }
 
 }));

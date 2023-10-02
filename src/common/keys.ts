@@ -10,6 +10,7 @@ export const AtomKeys = {
         },
 
         SELECTOR: {
+            PAGEFORID: crypto.randomUUID(),
             PAGES: crypto.randomUUID(),
         },
 

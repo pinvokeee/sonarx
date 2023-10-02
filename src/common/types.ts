@@ -1,10 +1,19 @@
+
+export type DocumentStyle = "html" | "lexHtml" | "text" | "image" | "flow";
+
 export type DocumentPage = {
     id: string,
     title: string,
     content: string,
-    contentType: "html" | "lexHtml" | "text" | "image",
+    contentType: DocumentStyle,
     parentId: string | undefined,
-    // children: DocumentPage[],
+}
+
+
+export type IReturnState = {
+    isError: boolean,
+    errorItem?: string,
+    message?: string,
 }
 
 export type IdParentPair = {
