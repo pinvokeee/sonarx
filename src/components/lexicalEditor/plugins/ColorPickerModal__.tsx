@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { ColorChangeHandler, ColorResult, SketchPicker } from "react-color";
 import { SketchPickerStylesProps } from "react-color/lib/components/sketch/Sketch";
 import {createPortal} from 'react-dom';
-import "./ColorPicker.css";
 
 const Popover = styled("div")(({theme}) => (
 {
@@ -40,8 +39,8 @@ export default function ColorPickerModal( props:
         props.onClose?.call(undefined);
     }
 
-    const onChange = (color: string) => {
-        props.onColorChange?.call(undefined, color);
+    const onChange = (color: ColorResult, event: React.ChangeEvent<HTMLInputElement>) => {
+        props.onColorChange?.call(undefined, color.hex);
     }
 
     const x = `${props.position.x}px`;
@@ -51,51 +50,10 @@ export default function ColorPickerModal( props:
         { props.isShow && <>
             <Cover onClick={handleClose}></Cover>
             { createPortal (<Popover sx={{ position: "absolute", top: y, left: x }}>
-                {/* <SketchPicker color={props.color} onChange={onChange}/> */}
-                <ColorPicker color={props.color} onChange={onChange}></ColorPicker>
+                <SketchPicker color={props.color} onChange={onChange}/>
             </Popover>, document.body) }
             </>
         }
     </>
     
-}
-
-export function ColorPicker( props: { color: string, onChange: (color: string) => void } ) {
-
-    const colors = [
-        "red",
-        "blue",
-        "green",
-        "yellow",
-        "pink",
-        "darkred",
-        "darkblue",
-        "red",
-        "blue",
-        "green",
-        "yellow",
-        "pink",
-        "darkred",
-        "#ff7688",
-    ]
-
-    const onClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-        props.onChange?.call(undefined, event.currentTarget.value);
-    }
-
-    console.log(props.color);
-
-    return <>
-        <button className="colorpicker container">
-            <div className="colorpicker colorcontainer">
-                {
-                    colors.map(color => <button onClick={onClick} value={color} className="colorpicker block" style={{ backgroundColor: color }}></button>)
-                }
-            </div>
-            <hr></hr>
-            <input type="color" defaultValue={props.color}></input>
-            <div></div>
-        </button>
-    </>
 }

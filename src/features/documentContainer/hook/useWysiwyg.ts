@@ -12,6 +12,20 @@ export const useWysiwygState = () => {
         setEditorState(editorState);
     }
 
+    const getEditState = async () => {
+        return new Promise<string>((resolve, reject) => {
+
+            if (!editorComponent) resolve("");
+            resolve(JSON.stringify(editorComponent?.getEditorState() ?? ""));
+
+            // editorState?.read(() => {
+            //     if (editorComponent) {
+            //         resolve($generateHtmlFromNodes(editorComponent, undefined))
+            //     }
+            // });
+        });
+    }
+
     const getHtmlString = async () => {
         return new Promise<string>((resolve, reject) => {
             editorState?.read(() => {
@@ -48,6 +62,7 @@ export const useWysiwygState = () => {
 
     return {
         onChange,
+        getEditState,
         getHtmlString,
         tryToFormattedText,
     }

@@ -1,0 +1,21 @@
+.colorpicker.container {
+    background-color: white;
+    width: 160px;
+    border: solid gray 1px;
+    padding: 6px;
+}
+
+.colorpicker.colorcontainer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px; 
+
+    border: none;
+}
+
+.colorpicker.block{
+    width: 16px;
+    height: 16px;
+    border: none;
+}

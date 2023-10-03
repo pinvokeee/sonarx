@@ -64,24 +64,30 @@ function EditUpdate(props: { src: string, }) {
 
         editor.update(() => {
 
-            const parser = new DOMParser();
-            const textHtmlMimeType: DOMParserSupportedType = 'text/html';
-            const dom = parser.parseFromString(props.src, textHtmlMimeType);
-
             console.log(props.src);
+            const state = editor.parseEditorState(props.src);
+            editor.setEditorState(state);
 
-            const nodes = $generateNodesFromDOM(editor, dom);
+            // JSON.stringify(editor.getEditorState())
+            
+            // const parser = new DOMParser();
+            // const textHtmlMimeType: DOMParserSupportedType = 'text/html';
+            // const dom = parser.parseFromString(props.src, textHtmlMimeType);
 
-            const root = $getRoot();
-            root.clear();
+            // console.log(props.src);
 
-            try {
-                root.append(...[...nodes]);
-            }
-            catch
-            {
-                root.append(new TextNode(props.src));
-            }
+            // const nodes = $generateNodesFromDOM(editor, dom);
+
+            // const root = $getRoot();
+            // root.clear();
+
+            // try {
+            //     root.append(...[...nodes]);
+            // }
+            // catch
+            // {
+            //     root.append(new TextNode(props.src));
+            // }
 
         });
 
@@ -130,7 +136,7 @@ export const LexicalEditorComponent = (props: { value: string, onChange?: (edito
                     <Scroller>
                         <div className='editor'>
                             <RichTextPlugin
-                                contentEditable={<ContentEditor />}
+                                contentEditable={<ContentEditor spellCheck={false} />}
                                 placeholder={<></>}
                                 // placeholder={<div className='editor-placeholder'>Enter some text...</div>}
                                 ErrorBoundary={LexicalErrorBoundary}

@@ -49,7 +49,7 @@ export const useEditHook = (props: { documentId: string }) : IUseEdit => {
     const getContentText = async () => {
         
         if (editPage.contentType == "lexHtml") {
-            const text = await useWsiywyg.getHtmlString();
+            const text = await useWsiywyg.getEditState();
             setContentText(text);
             return text;
         }
