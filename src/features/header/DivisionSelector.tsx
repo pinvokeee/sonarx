@@ -5,7 +5,7 @@ import { useDocumentSetterActions, useDocuments } from "../../common/states/docu
 
 const AllDivisionText = "すべてのディビジョン";
 
-export default function DivisionSelecotr() {
+export default function DivisionSelector() {
 
     const document = useDocuments();
     const divisionId = document.selectedDivisionId;

@@ -36,6 +36,8 @@ const getParentsId = (id: string | undefined, pages: { [key: string]: DocumentPa
 
 export default function TreeViewer() {
 
+console.log("TREEVIEW");
+
   const documents = useDocuments();
   const actions = useDocumentSetterActions();
 

@@ -21,10 +21,7 @@ export default function ToolBarButtonColorPicker( props:
     useEffect(() => {
         const bdbox = ref?.current?.getBoundingClientRect();
         if (!bdbox) return;
-
-        console.log(bdbox);
-
-        setPosX(bdbox.x - (bdbox.width / 2));
+        setPosX(bdbox.x - (bdbox.width));
         setPosY(bdbox.y + bdbox.height);
 
     }, [showModal]);

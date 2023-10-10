@@ -4,7 +4,8 @@ export type DocumentStyle = "html" | "lexHtml" | "text" | "image" | "flow";
 export type DocumentPage = {
     id: string,
     title: string,
-    content: string,
+    text: string,
+    html: string | undefined,
     contentType: DocumentStyle,
     parentId: string | undefined,
 }

@@ -36,6 +36,8 @@ export default function HtmlEditorContainer(props: { contentText: string, onChan
         onChange(value);
     }
 
+    console.log(props.contentText);
+
     return (
         <>
         <PreviewContainer>

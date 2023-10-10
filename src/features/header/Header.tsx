@@ -1,11 +1,24 @@
-import { AppBar, Box, Button, InputAdornment, OutlinedInput, Toolbar } from "@mui/material"
-import { Search } from '@mui/icons-material';
-import DivisionSelecotr from "./DivisionSelector";
+import { AppBar, Box, Button, Divider, IconButton, InputAdornment, MenuItem, OutlinedInput, Toolbar, styled } from "@mui/material"
+import { Search, Menu, Label } from '@mui/icons-material';
+import DivisionSelector from "./DivisionSelector";
 import { useDocumentSetterActions, useDocuments } from "../../common/states/document";
+import { OtherMenuButton } from "./OtherMenuButton";
+import { grey } from "@mui/material/colors";
+
+const F = styled("div")(({theme}) => (
+    {
+        color: "white",
+        gap: "2",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        width: "100%",
+    }
+));
 
 function SearchTextField() {
 
-    return <OutlinedInput sx={{ width: "70%" }} color="info" id="input-with-icon-adornment"
+    return <OutlinedInput sx={{ width: "70%", flexGrow: "2" }} color="info" id="input-with-icon-adornment"
         startAdornment={
             <InputAdornment position="start">
                 <Search />
@@ -47,16 +60,19 @@ export default function Header() {
     return (
         <Box sx={{ flexGrow: 1 }}>
             <AppBar elevation={0} position="static">
-                <Toolbar sx={{ justifyContent: 'space-between' }}>
+                <Toolbar >
+                    <F>
+                        <DivisionSelector></DivisionSelector>
+                        <SearchTextField />
+                        <OtherMenuButton buttonNode={<IconButton ><Menu/></IconButton>} onMenuClick={click}>
+                            <Divider></Divider>
+                            {/* <Label>AAA</Label> */}
+                            <MenuItem>{changeEditableModeButtonText}</MenuItem>
+                            <MenuItem>ダウンロード</MenuItem>
+                        </OtherMenuButton>
 
-                    <DivisionSelecotr></DivisionSelecotr>
-                    <SearchTextField />
+                    </F>
 
-                    {/* <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            News
-          </Typography> */}
-                    <Button onClick={handleChangeEditMode} color="inherit">{changeEditableModeButtonText}</Button>
-                    <Button onClick={downloadData}>ダウンロード</Button>
                 </Toolbar>
             </AppBar>
         </Box>

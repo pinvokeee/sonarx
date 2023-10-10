@@ -5,68 +5,69 @@ import { DocumentPage, IReturnState } from "../../../common/types";
 import { useDocumentSetterActions, useDocuments } from "../../../common/states/document";
 
 export type IUseEdit = {
-    contentText: string,
+    content: IContent,
     editPage: DocumentPage | undefined,
     isEditableMode: boolean,
     applyDocumentPage: (newPage: DocumentPage) => Promise<void>,
     onChange: (value: string) => void,
-    onChangeWysiwyg: (editor: LexicalEditor, editorState: EditorState) => void
+    onChangeWysiwyg: (editor: LexicalEditor, editorState: EditorState) => void,
+
+    isTemporarySaving: () => boolean,
+}
+
+type IContent = {
+    text: string, 
+    html: string | undefined
 }
 
 export const useEditHook = (props: { documentId: string }) : IUseEdit => {
-
-    console.log("CALL HOOK");
 
     const id = props.documentId;
     const { useGetFromId, isEditableMode, pages } = useDocuments();
     const { setDocumentPage } = useDocumentSetterActions();
 
-    const useWsiywyg = useWysiwygState();
+    const useWsiywyg = useWysiwygState( { documentId: id });
 
     const editPage = { ...useGetFromId(id as string) }
-    const [contentText, setContentText] = useState(editPage.content);
+    const [contentText, setContentText] = useState<IContent>({ text: editPage.text, html: editPage.html });
 
-    useEffect(() => setContentText(editPage.content), [props.documentId]);
+    const temporaryContent = localStorage.getItem(id);
 
-    const onChange = (value: string) => {
-        setContentText(value);
+    const isTemporarySaving = () => {
+        return temporaryContent != null;
+    }
+
+    const onChange = (text: string) => {
+        setContentText(content => ({ ...content, text }));
     }
 
     const applyDocumentPage = async (newPage: DocumentPage) : Promise<void> => {
-
         const saveContent = await getContentText();
-        const returnState : IReturnState = { errorItem: "", isError: false, message: "" };
-
-        // if (newPage.contentType == "lexHtml" && !(await useWsiywyg.tryToFormattedText(saveContent))) {
-        //     return { errorItem: "ソースコード", message: "この形式は書式付きテキストに変換できません", isError: true };
-        // }
-
-        setDocumentPage({ ...newPage, content: saveContent });
-
-        // return returnState;
+        setDocumentPage({ ...newPage, text: saveContent.text, html: saveContent.html });
     }
 
     const getContentText = async () => {
-        
+
         if (editPage.contentType == "lexHtml") {
             const text = await useWsiywyg.getEditState();
-            setContentText(text);
-            return text;
+            const html = await useWsiywyg.getHtmlString();
+            const content = { text, html };
+            setContentText(content);
+            return content;
         }
 
-        return contentText;
+        return { ...contentText, html: undefined };
     }
 
     return {
-        contentText,
+        content: contentText,
         applyDocumentPage,
 
         onChange,
         onChangeWysiwyg: useWsiywyg.onChange, 
-        
         editPage,
 
         isEditableMode,
-
+        isTemporarySaving,
     } as IUseEdit
 }

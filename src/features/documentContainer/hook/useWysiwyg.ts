@@ -2,14 +2,17 @@ import { EditorState, LexicalEditor } from "lexical";
 import { useState } from "react";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 
-export const useWysiwygState = () => {
+export const useWysiwygState = (props: { documentId: string }) => {
 
     const [editorState, setEditorState] = useState<EditorState | undefined>(undefined);
     const [editorComponent, setEditorComponent] = useState<LexicalEditor | undefined>(undefined);
+    const documentId = props.documentId;
 
     const onChange = (editor: LexicalEditor, editorState: EditorState) => {
         setEditorComponent(editor);
         setEditorState(editorState);
+
+        // localStorage.setItem(documentId, JSON.stringify(editorState ?? ""))
     }
 
     const getEditState = async () => {

@@ -3,9 +3,11 @@ import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
 import FormatColorTextIcon from '@mui/icons-material/FormatColorText';
+import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import ImageIcon from '@mui/icons-material/Image';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
-import { $createParagraphNode, $isRootOrShadowRoot, DEPRECATED_$isGridSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $getSelection, RangeSelection, FORMAT_TEXT_COMMAND, TextFormatType, LexicalEditor, $getRoot, TextNode } from 'lexical';
+import { $createParagraphNode, $isRootOrShadowRoot, DEPRECATED_$isGridSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $getSelection, RangeSelection, FORMAT_TEXT_COMMAND, TextFormatType, LexicalEditor, $getRoot, TextNode, $insertNodes } from 'lexical';
 import { Code, FormatStrikethrough, FormatUnderlinedSharp } from '@mui/icons-material';
 import { $setBlocksType, $getSelectionStyleValueForProperty, $patchStyleText } from '@lexical/selection';
 import { $createHeadingNode,  $createQuoteNode, $isHeadingNode, $isQuoteNode, HeadingTagType } from '@lexical/rich-text';
@@ -18,9 +20,18 @@ import {
     $getNearestNodeOfType,
     mergeRegister,
   } from '@lexical/utils';
+import { ToolBarButton } from './buttons/ToolBarButton';
+import { $createImageNode, INSERT_IMAGE_COMMAND } from './ImageNode';
 
 type EditToolbarProps = {
     // onClick: (value: string) => void,
+}
+
+type TextStyle = {
+    textColor: string,
+    backColor: string,
+    headerType: HeadType,
+    decorations: string[],
 }
 
 const FormatTypes = {
@@ -33,14 +44,16 @@ const FormatTypes = {
     code: "code",
 }
 
-const headerTypes = [
-    { text: "通常", tag: "normal"},
-    { text: "大きい6 <h1>", tag: "h1"},
-    { text: "大きい5 <h2>", tag: "h2"},
-    { text: "大きい4 <h3>", tag: "h3"},
-    { text: "大きい3 <h4>", tag: "h4"},
-    { text: "小さい1 <h5>", tag: "h5"},
-    { text: "小さい2 <h6>", tag: "h6"},
+type HeadType = "normal" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+
+const headerTypes : { text: string, tag: HeadType }[] = [
+    { text: "見出しなし", tag: "normal"},
+    { text: "見出し1", tag: "h1"},
+    { text: "見出し2", tag: "h2"},
+    { text: "見出し3", tag: "h3"},
+    { text: "見出し4", tag: "h4"},
+    { text: "見出し5", tag: "h5"},
+    { text: "見出し6", tag: "h6"},
 ];
 
 
@@ -67,94 +80,59 @@ export function PluginToolBar(props: EditToolbarProps) {
     // const [isItalic, setIsItalic] = useState(false);
     // const [isUnderline, setIsUnderline] = useState(false);
 
-    const [color, setColor] = useState("");
-    const [head, setHead] = useState("");
-    const [formats, setFormats] = useState((): string[] => []);
+    // const [style, setStyle] = useState();
 
-
+    // const [color, setColor] = useState("");
+    // const [head, setHead] = useState("");
+    
+    const [textStyle, setTextStyle] = useState<TextStyle>({
+        backColor: "",
+        textColor: "",
+        headerType: "normal",
+        decorations: [],
+    });
+    
 
     const color_input = useRef<HTMLInputElement>(null);
 
     const $updateToolbar = () => {
 
         const selection = $getSelection() as RangeSelection;
-        const a = Object.keys(FormatTypes).map(key => key).filter(key => selection.hasFormat(key as TextFormatType))
+
+        let headerType : HeadType = "normal";
 
         if ($isRangeSelection(selection)) {
 
             const anchorNode = selection.anchor.getNode();
-            let element =
-              anchorNode.getKey() === 'root'
-                ? anchorNode
-                : $findMatchingParent(anchorNode, (e) => {
-                    const parent = e.getParent();
-                    return parent !== null && $isRootOrShadowRoot(parent);
-                  });
+            let element = anchorNode.getKey() === 'root'
+            ? anchorNode
+            : $findMatchingParent(anchorNode, (e) => {
+                const parent = e.getParent();
+                return parent !== null && $isRootOrShadowRoot(parent);
+            });
       
             if (element === null) element = anchorNode.getTopLevelElementOrThrow();
-    
-            const h = $isHeadingNode(element);
-            
-            if (h) {
-                setHead(element.getTag());
-            }
-            else {
-                console.log(h);
-                setHead("normal");
-            }
-            
-
+            if ($isHeadingNode(element)) headerType = element.getTag() as HeadType;
         }
 
-        setColor(
-            $getSelectionStyleValueForProperty(selection, 'color', '#000')
-        )
+        const textColor = $getSelectionStyleValueForProperty(selection, 'color') ?? "#FFFFFF";
+        const backColor = $getSelectionStyleValueForProperty(selection, 'background-color') ?? "#FFFFFF";
+        const decorations = Object.keys(FormatTypes).map(key => key).filter(key => selection.hasFormat(key as TextFormatType))
         
-        setFormats(a);
+        setTextStyle(style => ({ ...style, headerType, textColor, backColor, decorations }));
     }
 
-    const handleFormat = (event: React.MouseEvent<HTMLElement>, newFormats: string[]) => {
 
-        const command = getCommand(formats, newFormats);
-        if (command == undefined) return;
-
-        activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, command.name as TextFormatType);
-
-        setFormats(newFormats);
-    }
-
-    const handleColorChange = (color: string) => {
-        setColor(color);
-        applyStyleText({ color } );
-    }
-
-    const applyStyleText = useCallback(
-        (styles: Record<string, string>) => {
-          activeEditor.update(() => {
-            const selection = $getSelection();
-            if (
-              $isRangeSelection(selection) ||
-              DEPRECATED_$isGridSelection(selection)
-            ) {
-              $patchStyleText(selection, styles);
+    const applyStyleText = useCallback((styles: Record<string, string>) => {
+        activeEditor.update(() => {
+                const selection = $getSelection();
+                if ($isRangeSelection(selection) || DEPRECATED_$isGridSelection(selection)) {
+                    $patchStyleText(selection, styles);
+                }
             }
-          });
-        },
-        [activeEditor],
-      );
-
-
-
-    const log = () => {
-
-        editor.update(() => {
-
-            const selection = $getSelection() as RangeSelection;
-            const htmlString = $generateHtmlFromNodes(editor, selection);
-
-            console.log(htmlString);
-        })
-    }
+        )},
+        [activeEditor]
+    );
 
     useEffect(() => {
         return editor.registerCommand(SELECTION_CHANGE_COMMAND, (_payload, newEditor) => {
@@ -180,90 +158,183 @@ export function PluginToolBar(props: EditToolbarProps) {
         );
     }, [editor, $updateToolbar]);
 
-    const onH = () => {
-
-        activeEditor.update(() => {
-
-            const selection = $getSelection();
-            
-            if ($isRangeSelection(selection)) {
-              $setBlocksType(selection, () => $createHeadingNode("h1"));
-            }
-
-        });
-
-    }
-
     const handleHeadChange = (event: SelectChangeEvent) => {
 
         activeEditor.update(() => {
-
             const selection = $getSelection();
                         
             if (event.target.value != "") {
-                if ($isRangeSelection(selection)) {
-                    $setBlocksType(selection, () => $createHeadingNode(event.target.value as HeadingTagType));
-                  }      
+                if ($isRangeSelection(selection)) $setBlocksType(selection, () => $createHeadingNode(event.target.value as HeadingTagType));     
             }
             else {
-                if ($isRangeSelection(selection)) {
-                    $setBlocksType(selection, () => $createParagraphNode());
-                  }      
+                if ($isRangeSelection(selection)) $setBlocksType(selection, () => $createParagraphNode());
             }
 
-            setHead(event.target.value as string);
-
+            const headerType = event.target.value as HeadType;
+            setTextStyle(style => ({ ...style, headerType }));
         });
     }
 
+    const handleSelectImage = () => {
+
+        // activeEditor.dispatchCommand(INSERT_IMAGE_COMMAND, 
+        //     {
+        //         alt: "te",
+        //         imageTypeSoruce: "link", 
+        //         src: "https://img.pokemon-matome.net/poke/231001/F71Z4nwboAAmSVS.jpg",
+        //     }
+        // );
+    }
+
+    const handleSelectionImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        
+        const file = event.target.files?.item(0);
+
+        if (file) {                
+            activeEditor.dispatchCommand(INSERT_IMAGE_COMMAND, 
+                {
+                    alt: "te",
+                    imageTypeSoruce: "base64", 
+                    src: await imageBinToBase64(file),
+                }
+            );
+        }
+    }
+
+    const imageBinToBase64 = (file: File) : Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            console.log(file);
+            fr.onloadend = () => resolve((fr.result as string) ?? "")
+            fr.readAsDataURL(file);
+        });
+    }
+
+    // const InsertImageButton = () => {
+
+    //     const [editor] = useLexicalComposerContext();
+        
+    //     return (
+    //         <label className='...' aria-label='image upload'>
+    //             <ImageIcon className='...' />
+    //             <span className='...'>画像を挿入</span>
+    //             <input id="file-upload" type='file' className='hidden' onChange={async (e) => {
+    //                 const file = e.target.files[0];
+    //                 const { path } = await uploadImage(file);//画像をアップロード
+    //                 editor.update(() => {
+    //                     editor.dispatchCommand(INSERT_IMAGE_COMMAND, {
+    //                         altText: file.name,
+    //                         src: path
+    //                     });
+    //                 });
+    //             }} />
+    //         </label>
+    //     );
+    // };
+    
+
+
+    const getHeaderType = () => textStyle.headerType;
+    const getTextColor = () => textStyle.textColor;
+    const getBackColor = () => textStyle.backColor;
+    const isCheckedStyle = (style: string) => textStyle.decorations.includes(style);
+    const isCheckedBold = () => isCheckedStyle(FormatTypes.bold);
+    const isCheckedItalic = () => isCheckedStyle(FormatTypes.italic);
+    const isCheckedUnderline = () => isCheckedStyle(FormatTypes.underline);
+    const isCheckedStrikethrough = () => isCheckedStyle(FormatTypes.strikethrough);
+    const isCheckedCode = () => isCheckedStyle(FormatTypes.code);
+    
+    const handleColorChange = (color: string) => {
+        applyStyleText({ color } );
+        setTextStyle(style => ({...style, color}));
+    }
+
+    const handleBackColorChange = (backColor: string) => {
+        applyStyleText({ "background-color": backColor } );
+        setTextStyle(style => ({...style, backColor}));
+    }
+
+    const handleTextDecorationChange = (event: React.MouseEvent<HTMLElement>, value: string) => {
+
+        const format = value;
+        const del = textStyle.decorations.includes(value);
+        const decorations = [...textStyle.decorations, format].filter(val => ((!del) && val == format) || (val != format));
+
+        activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, format as TextFormatType);
+
+        setTextStyle(style => ({ ...style, decorations }));
+    }
+
+    const cancelClick = (event: React.MouseEvent<HTMLDivElement>) => {        
+        event.preventDefault();
+        event.cancelable = true;
+        event.stopPropagation();
+    }
+
     return <>
-        <Toolbar disableGutters={true}>
-            <div style={{ display: "flex", gap: "6px" }}>
-                <div>
-                    <Select fullWidth size="small" value={head} onChange={handleHeadChange}>
-                        {
-                            headerTypes.map(head => <MenuItem value={head.tag}>{head.text}</MenuItem>)
-                        }
-                    </Select>
-                </div>
-                <div>
-                    {/* <Button onClick={onH}>H1</Button> */}
-                    {/* <Button onClick={log}>LG</Button> */}
-                </div>
-                <div>
-                    <ToolBarButtonColorPicker color={color} onChangeColor={handleColorChange}>
-                        <FormatColorTextIcon></FormatColorTextIcon>
-                    </ToolBarButtonColorPicker>
-                </div>
-                <div>
-
-                    <ToggleButtonGroup value={formats} onChange={handleFormat} size="small">
-
-                        <ToggleButton value={FormatTypes.bold}>
-                            <FormatBoldIcon></FormatBoldIcon>
-                        </ToggleButton>
-
-                        <ToggleButton value={FormatTypes.italic}>
-                            <FormatItalicIcon></FormatItalicIcon>
-                        </ToggleButton>
-
-                        <ToggleButton value={FormatTypes.underline} >
-                            <FormatUnderlinedIcon></FormatUnderlinedIcon>
-                        </ToggleButton>
-
-                        <ToggleButton value={FormatTypes.strikethrough} >
-                            <FormatStrikethrough></FormatStrikethrough>
-                        </ToggleButton>
-
-                        <ToggleButton value={FormatTypes.code} >
-                            <Code></Code>
-                        </ToggleButton>
-
-                    </ToggleButtonGroup>
-                </div>
+        <Toolbar onMouseDown={cancelClick} sx={{ gap: "10px" }}>
+            <div>
+                <Select  size="small" value={getHeaderType()} onChange={handleHeadChange}>
+                    {
+                        headerTypes.map(head => <MenuItem value={head.tag}>{head.text}</MenuItem>)
+                    }
+                </Select>
             </div>
+
+            <Divider flexItem orientation='vertical' variant='fullWidth' ></Divider>
+
+            <div>
+                <ToolBarButtonColorPicker color={getTextColor()} onChangeColor={handleColorChange}>
+                    <FormatColorTextIcon></FormatColorTextIcon>
+                </ToolBarButtonColorPicker>      
+
+                <ToolBarButtonColorPicker color={getBackColor()} onChangeColor={handleBackColorChange}>
+                    <FormatColorFillIcon></FormatColorFillIcon>
+                </ToolBarButtonColorPicker>                          
+                
+                <StyledToggleButton size='small' onChange={handleTextDecorationChange} value={FormatTypes.bold} selected={isCheckedBold()}>
+                    <FormatBoldIcon></FormatBoldIcon>
+                </StyledToggleButton>
+
+                <StyledToggleButton size='small' onChange={handleTextDecorationChange} value={FormatTypes.italic} selected={isCheckedItalic()}>
+                        <FormatItalicIcon></FormatItalicIcon>
+                </StyledToggleButton>
+
+                <StyledToggleButton size='small' onChange={handleTextDecorationChange} value={FormatTypes.underline} selected={isCheckedUnderline()}>
+                    <FormatUnderlinedIcon></FormatUnderlinedIcon>
+                </StyledToggleButton>
+
+                <StyledToggleButton size='small' onChange={handleTextDecorationChange} value={FormatTypes.strikethrough} selected={isCheckedStrikethrough()}>
+                    <FormatStrikethrough></FormatStrikethrough>
+                </StyledToggleButton>
+
+                <StyledToggleButton size='small' onChange={handleTextDecorationChange} value={FormatTypes.code} selected={isCheckedCode()}>
+                    <Code></Code>
+                </StyledToggleButton>
+            </div>
+
+            <Divider flexItem orientation='vertical' variant='fullWidth' ></Divider>
+
+            <div>
+                <ToolBarButton onClick={handleSelectImage} value='image'>
+                    <ImageIcon></ImageIcon>
+                    <input type='file' className='hidden' onChange={handleSelectionImage}></input>
+                </ToolBarButton>
+            </div>
+
+
         </Toolbar>
 
     </>
 }
 
+const StyledToggleButton = styled(ToggleButton)(({theme}) => (
+    {
+        '&.MuiToggleButton-root': {
+            verticalAlign: "top",
+            border: "none",
+            // "minWidth": "0px",
+            // "padding": "0",
+        },
+    }
+));

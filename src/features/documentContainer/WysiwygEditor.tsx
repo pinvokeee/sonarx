@@ -7,7 +7,6 @@ export default function WysiwygEditor( props: {
         onChangeWysiwyg: (editor: LexicalEditor, editorState: EditorState) => void 
     })
 {
-    console.log("RENDER", "WYS");
     const { contentText, onChangeWysiwyg } = props;
 
     return <>

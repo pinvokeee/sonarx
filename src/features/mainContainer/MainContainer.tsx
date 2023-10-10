@@ -1,7 +1,8 @@
 import { styled } from "@mui/material";
 import { useDocuments } from "../../common/states/document";
 import TreeViewer from "./treeViewer/TreeViewer";
-import DocumentContainer from "../documentContainer/DocumentContainer";
+import { DocumentContainer } from "../documentContainer/DocumentContainer";
+import { useEffect, useMemo, useState } from "react";
 
 const Container = styled("div")(({theme}) => ({
     overflow: "auto",
@@ -18,7 +19,7 @@ export function MainContainer() {
     return <>
         <Container>
             <TreeViewer></TreeViewer>
-            <DocumentContainer documentId={selectedPageId as string}></DocumentContainer>
+            <DocumentContainer key={selectedPageId as string} documentId={selectedPageId as string}></DocumentContainer>
         </Container>
     </>
 }

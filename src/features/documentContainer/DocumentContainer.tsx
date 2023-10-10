@@ -1,5 +1,5 @@
 import { styled } from "@mui/material";
-import { useEffect } from "react";
+import { memo, useEffect, useMemo } from "react";
 import HtmlEditorContainer from "./HtmlEditorContainer";
 import { useDocumentSetterActions, useDocuments } from "../../common/states/document";
 import { DocumentPage, IReturnState } from "../../common/types";
@@ -32,12 +32,10 @@ const EditContainer = styled("div")(({theme}) => (
     }
 ));
 
-export default function DocumentContainer( props: { documentId: string } ) {
-
-    console.log("RENDER", "DOC");
+const _DocumentContainer = ( props: { documentId: string } ) => {
 
     const useEdit = useEditHook( { documentId: props.documentId });
-    const { isEditableMode, applyDocumentPage, editPage, contentText, onChange, onChangeWysiwyg } = useEdit;
+    const { isEditableMode, applyDocumentPage, editPage, content: contentText, onChange, onChangeWysiwyg, isTemporarySaving } = useEdit;
 
     const handleSaveProperty = async (newPage: DocumentPage) => {
         await applyDocumentPage(newPage);
@@ -46,13 +44,17 @@ export default function DocumentContainer( props: { documentId: string } ) {
     const getEditComponent = (type: string) => {
 
         if (type == "lexHtml") return (
-            <WysiwygEditor contentText={contentText} onChangeWysiwyg={onChangeWysiwyg}></WysiwygEditor>
+            <WysiwygEditor contentText={contentText.text} onChangeWysiwyg={onChangeWysiwyg}></WysiwygEditor>
         );
         
         if (type == "html") return (
-            <HtmlEditorContainer contentText={contentText} onChange={onChange}></HtmlEditorContainer>
+            <HtmlEditorContainer contentText={contentText.text} onChange={onChange}></HtmlEditorContainer>
         );
     }
+
+
+    // const isEditableMode = false;
+    // const editPage = { contentType: "html" };
 
     if (isEditableMode) {
 
@@ -67,6 +69,9 @@ export default function DocumentContainer( props: { documentId: string } ) {
     }
 
     return <Container>
-        <DocumentView srcDoc={editPage?.content}></DocumentView>
+        <DocumentView srcDoc={ editPage?.contentType == "lexHtml" ? editPage.html : editPage?.text}></DocumentView>
     </Container>
 }
+
+
+export const DocumentContainer = memo(_DocumentContainer);

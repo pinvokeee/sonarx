@@ -37,6 +37,7 @@ export default function MonacoEditor(props: MonacoEditorProps) {
     };
 
     useLayoutEffect(() => {
+        console.log(editor, prevText, props.value)
         if (prevText !== props.value) {
             editor?.setValue(props.value ?? "予期せぬエラー")            
             setPrevText(props.value);

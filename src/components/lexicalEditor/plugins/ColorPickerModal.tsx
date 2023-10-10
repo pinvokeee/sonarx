@@ -14,14 +14,14 @@ const Popover = styled("div")(({theme}) => (
 ));
 
 const Cover = styled("div")(({theme}) => (
-    {
-        position: 'fixed',
-        top: '0px',
-        right: '0px',
-        bottom: '0px',
-        left: '0px',
-    }
-    ));
+{
+    position: 'fixed',
+    top: '0px',
+    right: '0px',
+    bottom: '0px',
+    left: '0px',
+}
+));
 
 export default function ColorPickerModal( props: 
     { 
@@ -35,8 +35,6 @@ export default function ColorPickerModal( props:
     {
 
     const handleClose = () => {
-        // setDisplayState(false);
-        console.log("ADAD");
         props.onClose?.call(undefined);
     }
 
@@ -84,11 +82,17 @@ export function ColorPicker( props: { color: string, onChange: (color: string) =
         props.onChange?.call(undefined, event.currentTarget.value);
     }
 
+    const DivClickK = (event: React.MouseEvent<HTMLDivElement>) => {        
+        event.preventDefault();
+        event.cancelable = true;
+        event.stopPropagation();
+    }
+
     console.log(props.color);
 
     return <>
-        <button className="colorpicker container">
-            <div className="colorpicker colorcontainer">
+        <div onMouseDown={DivClickK} className="colorpicker container">
+            <div onMouseDown={DivClickK} className="colorpicker colorcontainer">
                 {
                     colors.map(color => <button onClick={onClick} value={color} className="colorpicker block" style={{ backgroundColor: color }}></button>)
                 }
@@ -96,6 +100,6 @@ export function ColorPicker( props: { color: string, onChange: (color: string) =
             <hr></hr>
             <input type="color" defaultValue={props.color}></input>
             <div></div>
-        </button>
+        </div>
     </>
 }

@@ -22,3 +22,7 @@
     padding: 6px;
     background-color: lightgray;
 }
+
+.hidden {
+    display: "none";
+}

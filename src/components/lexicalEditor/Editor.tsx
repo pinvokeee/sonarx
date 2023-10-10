@@ -15,6 +15,7 @@ import { LinkNode, AutoLinkNode } from '@lexical/link';
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import "./Editor.css";
 import { PluginToolBar } from './plugins/PluginToolBar';
+import { ImageNode, ImagePlugin } from './plugins/ImageNode';
 
 const theme = {
     paragraph: 'editor-paragraph',
@@ -117,7 +118,8 @@ export const LexicalEditorComponent = (props: { value: string, onChange?: (edito
             LinkNode,
             AutoLinkNode,
             HeadingNode,
-            QuoteNode
+            QuoteNode,
+            ImageNode,
         ],
         onError,
     };
@@ -132,6 +134,7 @@ export const LexicalEditorComponent = (props: { value: string, onChange?: (edito
         <>
             <LexicalComposer initialConfig={initialConfig}>
                 <div style={{ display: "grid", gridTemplateRows: "auto 1fr", overflow: "hidden" }}>
+                    <ImagePlugin />
                     <PluginToolBar></PluginToolBar>
                     <Scroller>
                         <div className='editor'>
