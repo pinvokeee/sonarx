@@ -7,14 +7,14 @@ import {
     NodeKey,
     SerializedLexicalNode,
     Spread,
-    $createParagraphNode, $insertNodes, $isRootOrShadowRoot, COMMAND_PRIORITY_EDITOR,
+    $createParagraphNode, $insertNodes, $isRootOrShadowRoot, COMMAND_PRIORITY_EDITOR, ElementNode, SerializedElementNode, RangeSelection, ParagraphNode, DOMConversionMap, DOMConversionOutput, ElementFormatType,
 } from 'lexical';
 
 import { $applyNodeReplacement, DecoratorNode, createCommand } from 'lexical';
 import { BlockWithAlignableContents } from '@lexical/react/LexicalBlockWithAlignableContents';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useEffect } from 'react';
-import { $wrapNodeInElement, mergeRegister } from '@lexical/utils';
+import { $wrapNodeInElement, mergeRegister, isHTMLElement } from '@lexical/utils';
 import { Button, styled } from '@mui/material';
 import ReactDOMServer from 'react-dom/server';
 
@@ -25,14 +25,14 @@ export type NotePayload = {
     type: NoteType;
     text: string;
 }
-export type SerializedNoteType = Spread<{ payload : NotePayload }, SerializedLexicalNode>;
+export type SerializedNoteType = Spread<{ payload: NotePayload }, SerializedLexicalNode>;
 
 const palette = {
-        "success": "#e3f7df",
-        "info": "#fdf9e2",
-        "warn": "#fdf9e2",
-        "error":  "#feebee",
-    }
+    "success": "#e3f7df",
+    "info": "#fdf9e2",
+    "warn": "#fdf9e2",
+    "error": "#feebee",
+}
 
 // const NoteSuccess = styled("div")(({theme}) => (
 //     {
@@ -66,113 +66,131 @@ const palette = {
 
 function jsxToHtml(jsx: React.ReactElement): string {
     return ReactDOMServer.renderToStaticMarkup(jsx);
-    }
+}
 
-const NoteBase = styled("div")(({theme}) => (
+const NoteBase = styled("div")(({ theme }) => (
     {
         padding: "12px",
     }
 ));
 
-const NoteNodeElement = (props: { text: string, color: string, contentEditable?: boolean }) => {
-
-    return  <NoteBase contentEditable={props.contentEditable ?? false} style={{ backgroundColor: props.color }}>{props.text}</NoteBase>
+export function $createNoteNode(): NoteNode {
+    return $applyNodeReplacement(new NoteNode());
 }
 
-export class NoteNode extends DecoratorNode<JSX.Element> {
+const NoteNodeElement = (props: { text: string, color: string, contentEditable?: boolean }) => {
 
+    return <NoteBase contentEditable={props.contentEditable ?? false} style={{ backgroundColor: props.color }}>{props.text}</NoteBase>
+}
 
+export function addClassNamesToElement(
+    element: HTMLElement,
+    ...classNames: Array<typeof undefined | boolean | null | string>
+): void {
+    classNames.forEach((className) => {
+        if (typeof className === 'string') {
+            const classesToAdd = className.split(' ').filter((n) => n !== '');
+            element.classList.add(...classesToAdd);
+        }
+    });
+}
 
-    payload: NotePayload;
+function convertBlockNoteElement(element: HTMLElement): DOMConversionOutput {
+    const node = $createNoteNode();
+    // if (element.style !== null) {
+    //   node.setFormat(element.style.textAlign as ElementFormatType);
+    // }
+    return { node };
+}
 
-    constructor(payload : NotePayload) {
-        super(payload.key);
-        this.payload = { ...payload };
+export type SerializedNoteNode = SerializedElementNode;
+
+export class NoteNode extends ElementNode {
+
+    static getType(): string {
+        return 'quote';
     }
+
+    static clone(node: NoteNode): NoteNode {
+        return new NoteNode(node.__key);
+    }
+
+    constructor(key?: NodeKey) {
+        super(key);
+    }
+
+    // View
 
     createDOM(config: EditorConfig): HTMLElement {
-
-        console.log(config);
-const r = <NoteNodeElement text={this.payload.text} color={palette[this.payload.type]} contentEditable />
-
-        const div = document.createElement("div");
-        div.innerHTML = jsxToHtml(r);
-
-        // console.log(jsxToHtml(r));
-        // div.innerText = this.payload.text;
-        // div.style.backgroundColor = palette[this.payload.type];
-        // div.style.padding = "12px";
-
-        return div;
+        const element = document.createElement('blockquote');
+        addClassNamesToElement(element, config.theme.quote);
+        return element;
     }
-
-    updateDOM(): false {
+    updateDOM(prevNode: NoteNode, dom: HTMLElement): boolean {
         return false;
     }
 
-    decorate(): JSX.Element {
-        return <></>
+    static importDOM(): DOMConversionMap | null {
+        return {
+            blockquote: (node: Node) => ({
+                conversion: convertBlockNoteElement,
+                priority: 0,
+            }),
+        };
     }
 
+    exportDOM(editor: LexicalEditor): DOMExportOutput {
+        const { element } = super.exportDOM(editor);
 
+        if (element && isHTMLElement(element)) {
+            if (this.isEmpty()) element.append(document.createElement('br'));
 
-    // decorate(): JSX.Element {
+            const formatType = this.getFormatType();
+            element.style.textAlign = formatType;
 
-        
+            const direction = this.getDirection();
+            if (direction) {
+                element.dir = direction;
+            }
+        }
 
-    //     return <BlockWithAlignableContents format={''} nodeKey={this.getKey()}
-    //         className={{
-    //             base: 'relative',
-    //             focus: 'relative outline outline-indigo-300'
-    //         }}>
-
-    //         {/* <NoteNodeElement text={this.payload.text} color={palette[this.payload.type]} contentEditable /> */}
-            
-    //         {/* { this.payload.type == 'success' ? <NoteBase contentEditable>{this.payload.text}</NoteBase> :
-    //           this.payload.type == 'info' ? <NoteInfo contentEditable>{this.payload.text}</NoteInfo> :
-    //           this.payload.type == 'warn' ? <NoteWarn contentEditable>{this.payload.text}</NoteWarn> :
-    //           this.payload.type == 'error' ? <NoteError contentEditable>{this.payload.text}</NoteError> : <></>
-    //         } */}
-
-    //         {/* <div style={{ backgroundColor: this.palette[this.payload.type] }} contentEditable>{this.payload.text}</div> */}
-
-    //     </BlockWithAlignableContents>
-    // }
-
-    exportJSON(): SerializedNoteType {
         return {
-          payload: { ...this.payload },
-          type: 'note',
-          version: 1,
+            element,
         };
-      }
+    }
 
-    static importJSON(serializedNode: SerializedNoteType): NoteNode {
-        const { payload } = serializedNode;
-        const node = $createNoteNode(payload);
-        // const nestedEditor = node.__caption;
-        // const editorState = nestedEditor.parseEditorState(caption.editorState);
-        // if (!editorState.isEmpty()) {
-        //     nestedEditor.setEditorState(editorState);
-        // }
+    static importJSON(serializedNode: SerializedNoteNode): NoteNode {
+        const node = $createNoteNode();
+        node.setFormat(serializedNode.format);
+        node.setIndent(serializedNode.indent);
+        node.setDirection(serializedNode.direction);
         return node;
     }
-    
-//     exportDOM(editor: LexicalEditor): DOMExportOutput {
-        
-// }
-    static clone(node: NoteNode): NoteNode {
-        return new NoteNode({ ...node.payload });
-      }
 
-    static getType(): string {
-        return 'note';
+    exportJSON(): SerializedElementNode {
+        return {
+            ...super.exportJSON(),
+            type: 'note',
+        };
     }
 
-}
+    // Mutation
 
-export function $createNoteNode(notePayload: NotePayload): NoteNode {
-    return $applyNodeReplacement(new NoteNode(notePayload));
+    insertNewAfter(_: RangeSelection, restoreSelection?: boolean): ParagraphNode {
+        const newBlock = $createParagraphNode();
+        const direction = this.getDirection();
+        newBlock.setDirection(direction);
+        this.insertAfter(newBlock, restoreSelection);
+        return newBlock;
+    }
+
+    collapseAtStart(): true {
+        const paragraph = $createParagraphNode();
+        const children = this.getChildren();
+        children.forEach((child) => paragraph.append(child));
+        this.replace(paragraph);
+        return true;
+    }
 }
 
 /*
@@ -180,7 +198,7 @@ export function $createNoteNode(notePayload: NotePayload): NoteNode {
 */
 
 export type InsertNotePayload = Readonly<NotePayload>
-export const INSERT_NOTE_COMMAND: LexicalCommand<InsertNotePayload> = createCommand('INSERT_IMAGE_COMMAND');
+export const INSERT_NOTE_COMMAND: LexicalCommand<InsertNotePayload> = createCommand('INSERT_NOTE_COMMAND');
 
 
 export const NotePlugin = () => {
@@ -196,7 +214,7 @@ export const NotePlugin = () => {
         return mergeRegister(
             editor.registerCommand<InsertNotePayload>(INSERT_NOTE_COMMAND, (payload) => {
 
-                const noteNode = $createNoteNode(payload);
+                const noteNode = $createNoteNode();
                 $insertNodes([noteNode]);
 
                 if ($isRootOrShadowRoot(noteNode.getParentOrThrow())) {
@@ -214,5 +232,3 @@ export const NotePlugin = () => {
     return <>
     </>;
 };
-
-
