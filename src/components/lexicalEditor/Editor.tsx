@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect } from 'react';
+import React, { forwardRef, useEffect, useState } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
@@ -16,6 +16,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import "./Editor.css";
 import { PluginToolBar } from './plugins/PluginToolBar';
 import { ImageNode, ImagePlugin } from './plugins/ImageNode';
+import { NoteNode, NotePlugin } from './plugins/NoteNode';
 
 const theme = {
     paragraph: 'editor-paragraph',
@@ -57,47 +58,6 @@ function MyCustomAutoFocusPlugin() {
     return null;
 }
 
-function EditUpdate(props: { src: string, }) {
-
-    const [editor] = useLexicalComposerContext();
-
-    useEffect(() => {
-
-        editor.update(() => {
-
-            console.log(props.src);
-            const state = editor.parseEditorState(props.src);
-            editor.setEditorState(state);
-
-            // JSON.stringify(editor.getEditorState())
-            
-            // const parser = new DOMParser();
-            // const textHtmlMimeType: DOMParserSupportedType = 'text/html';
-            // const dom = parser.parseFromString(props.src, textHtmlMimeType);
-
-            // console.log(props.src);
-
-            // const nodes = $generateNodesFromDOM(editor, dom);
-
-            // const root = $getRoot();
-            // root.clear();
-
-            // try {
-            //     root.append(...[...nodes]);
-            // }
-            // catch
-            // {
-            //     root.append(new TextNode(props.src));
-            // }
-
-        });
-
-    }, [editor, props.src]);
-
-    return null;
-}
-
-
 // Catch any errors that occur during Lexical updates and log them
 // or throw them as needed. If you don't throw them, Lexical will
 // try to recover gracefully without losing user data.
@@ -120,9 +80,16 @@ export const LexicalEditorComponent = (props: { value: string, onChange?: (edito
             HeadingNode,
             QuoteNode,
             ImageNode,
+            NoteNode,
         ],
+        editorState: props.value,
         onError,
     };
+
+    // const [st, setState] = useState(props.value);
+
+    // const state = editor.parseEditorState(props.src);
+    // editor.setEditorState(state);
 
     const onChange = (editorState: EditorState, editor: LexicalEditor, tags: Set<string>) => {
         editorState.read(() => {            
@@ -135,6 +102,7 @@ export const LexicalEditorComponent = (props: { value: string, onChange?: (edito
             <LexicalComposer initialConfig={initialConfig}>
                 <div style={{ display: "grid", gridTemplateRows: "auto 1fr", overflow: "hidden" }}>
                     <ImagePlugin />
+                    <NotePlugin />
                     <PluginToolBar></PluginToolBar>
                     <Scroller>
                         <div className='editor'>
@@ -145,7 +113,7 @@ export const LexicalEditorComponent = (props: { value: string, onChange?: (edito
                                 ErrorBoundary={LexicalErrorBoundary}
                             />
                             <OnChangePlugin onChange={onChange} />
-                            <EditUpdate src={props.value} />
+                            {/* <EditUpdate src={props.value} /> */}
                             <HistoryPlugin />
                             <MyCustomAutoFocusPlugin />
                         </div>

@@ -28,8 +28,10 @@ function SearchTextField() {
 
 export default function Header() {
 
-    const { isEditableMode } = useDocuments();
+    const { isEditableMode, useGetSelectedDocumentPage } = useDocuments();
     const { setEditableMode, convertToJSON } = useDocumentSetterActions();
+
+    const selectedDocPage = useGetSelectedDocumentPage();
 
     const click = () => {
         // a();
@@ -57,6 +59,21 @@ export default function Header() {
         URL.revokeObjectURL(objUrl);
     }
 
+    const c = () => {
+        
+        const source = (selectedDocPage?.contentType == "lexHtml" ? selectedDocPage.html : selectedDocPage?.text) ?? "";
+
+        const blob = new Blob([source], { type: 'text/plain' });
+        const a = document.createElement('a');
+        const objUrl = URL.createObjectURL(blob);
+        a.href = objUrl;
+        a.target = '_blank';
+        a.download = `${(selectedDocPage?.title) ?? "output"}.html`;
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objUrl);
+    }
+
     return (
         <Box sx={{ flexGrow: 1 }}>
             <AppBar elevation={0} position="static">
@@ -67,8 +84,9 @@ export default function Header() {
                         <OtherMenuButton buttonNode={<IconButton ><Menu/></IconButton>} onMenuClick={click}>
                             <Divider></Divider>
                             {/* <Label>AAA</Label> */}
-                            <MenuItem>{changeEditableModeButtonText}</MenuItem>
-                            <MenuItem>ダウンロード</MenuItem>
+                            <MenuItem onClick={handleChangeEditMode}>{changeEditableModeButtonText}</MenuItem>
+                            <MenuItem onClick={downloadData}>ダウンロード</MenuItem>
+                            <MenuItem onClick={c}>HTML形式で出力</MenuItem>
                         </OtherMenuButton>
 
                     </F>

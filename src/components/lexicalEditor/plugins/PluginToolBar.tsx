@@ -7,7 +7,7 @@ import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import ImageIcon from '@mui/icons-material/Image';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
-import { $createParagraphNode, $isRootOrShadowRoot, DEPRECATED_$isGridSelection, $isRangeSelection, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $getSelection, RangeSelection, FORMAT_TEXT_COMMAND, TextFormatType, LexicalEditor, $getRoot, TextNode, $insertNodes } from 'lexical';
+import { $createParagraphNode, $isRootOrShadowRoot, DEPRECATED_$isGridSelection, $isRangeSelection, KEY_ENTER_COMMAND, SELECTION_CHANGE_COMMAND, COMMAND_PRIORITY_CRITICAL, $getSelection, RangeSelection, FORMAT_TEXT_COMMAND, TextFormatType, LexicalEditor, $getRoot, TextNode, $insertNodes } from 'lexical';
 import { Code, FormatStrikethrough, FormatUnderlinedSharp } from '@mui/icons-material';
 import { $setBlocksType, $getSelectionStyleValueForProperty, $patchStyleText } from '@lexical/selection';
 import { $createHeadingNode,  $createQuoteNode, $isHeadingNode, $isQuoteNode, HeadingTagType } from '@lexical/rich-text';
@@ -22,6 +22,8 @@ import {
   } from '@lexical/utils';
 import { ToolBarButton } from './buttons/ToolBarButton';
 import { $createImageNode, INSERT_IMAGE_COMMAND } from './ImageNode';
+import { INSERT_NOTE_COMMAND } from './NoteNode';
+import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 
 type EditToolbarProps = {
     // onClick: (value: string) => void,
@@ -73,6 +75,7 @@ export function PluginToolBar(props: EditToolbarProps) {
 
     const [editor] = useLexicalComposerContext();
     const [activeEditor, setActiveEditor] = useState(editor);
+    const [enter, setEnter] = useState(false);
 
     // const [formatState, setFormatState] = useState(Object.fromEntries(Object.keys(FormatTypes).map(name => [name, false])));    
 
@@ -135,10 +138,65 @@ export function PluginToolBar(props: EditToolbarProps) {
     );
 
     useEffect(() => {
+
+        if (!enter) return ;
+
+
+
+    }, [enter]);
+
+    const onChange = () => {
+        console.log(enter)
+        if (enter) {
+            const selection = document.getSelection();
+            const element = selection?.focusNode;
+            
+
+            if (element) {
+                
+                let targetTag = element.nodeType == Node.TEXT_NODE ? element.parentElement :
+                element.nodeType == Node.ELEMENT_NODE ? (element as HTMLElement) : null;
+                
+
+                if (targetTag) {
+
+                    while (targetTag != null) {
+                        
+                        if (!targetTag.parentElement) break;
+                        if (Boolean(targetTag.parentElement.dataset.lexicalEditor)) break;
+                        targetTag = targetTag.parentElement;
+                    }
+                }
+
+                // console.log(targetTag, element, element.nodeType, element.parentElement);
+
+                targetTag?.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }
+
+            setEnter(false);
+        }
+    }
+
+    useEffect(() => {
         return editor.registerCommand(SELECTION_CHANGE_COMMAND, (_payload, newEditor) => {
 
             $updateToolbar();
             setActiveEditor(newEditor);
+            
+
+            return false;
+        },
+            COMMAND_PRIORITY_CRITICAL,
+        );
+    }, [editor, $updateToolbar, enter]);
+
+    useEffect(() => {
+        return editor.registerCommand(KEY_ENTER_COMMAND, (_payload, newEditor) => {
+
+            $updateToolbar();
+            setActiveEditor(newEditor);
+
+            setEnter(true);
 
             return false;
         },
@@ -184,6 +242,15 @@ export function PluginToolBar(props: EditToolbarProps) {
         //         src: "https://img.pokemon-matome.net/poke/231001/F71Z4nwboAAmSVS.jpg",
         //     }
         // );
+    }
+
+    const handleInsertNode = () => {
+        activeEditor.dispatchCommand(INSERT_NOTE_COMMAND, 
+            {
+                text: "TESt",
+                type: "success",
+            }
+        );
     }
 
     const handleSelectionImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -273,6 +340,7 @@ export function PluginToolBar(props: EditToolbarProps) {
 
     return <>
         <Toolbar onMouseDown={cancelClick} sx={{ gap: "10px" }}>
+            <OnChangePlugin onChange={onChange}></OnChangePlugin>
             <div>
                 <Select  size="small" value={getHeaderType()} onChange={handleHeadChange}>
                     {
@@ -316,6 +384,10 @@ export function PluginToolBar(props: EditToolbarProps) {
             <Divider flexItem orientation='vertical' variant='fullWidth' ></Divider>
 
             <div>
+            <ToolBarButton onClick={handleInsertNode} value='image'>
+                    <ImageIcon></ImageIcon>
+                </ToolBarButton>
+
                 <ToolBarButton onClick={handleSelectImage} value='image'>
                     <ImageIcon></ImageIcon>
                     <input type='file' className='hidden' onChange={handleSelectionImage}></input>

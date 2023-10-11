@@ -7,7 +7,7 @@ import {
     NodeKey,
     SerializedLexicalNode,
     Spread,
-    $createParagraphNode, $insertNodes, $isRootOrShadowRoot, COMMAND_PRIORITY_EDITOR,
+    $createParagraphNode, $insertNodes, $isRootOrShadowRoot, COMMAND_PRIORITY_EDITOR, isHTMLElement, ElementNode, SerializedElementNode,
 } from 'lexical';
 
 import { $applyNodeReplacement, DecoratorNode, createCommand } from 'lexical';
@@ -32,6 +32,8 @@ export type SerializedImageNode = Spread<{ payload : ImagePayload }, SerializedL
 
 
 export class ImageNode extends DecoratorNode<JSX.Element> {
+// export class ImageNode extends ElementNode {
+
 
     payload: ImagePayload;
 
@@ -43,10 +45,12 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
     }
 
     createDOM(config: EditorConfig): HTMLElement {
-        const span = document.createElement("span");
 
+        const img = document.createElement("img");
+        img.src = this.payload.src;
+        
 
-        return span;
+        return img;
     }
 
     updateDOM(): false {
@@ -75,6 +79,41 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
           version: 1,
         };
       }
+
+    // exportJSON(): SerializedElementNode  {
+        
+    //     return {
+    //         ...super.exportJSON(),
+    //         type: 'image',
+    //       };
+
+    //     // return {
+    //     //   payload: { ...this.payload },
+    //     //   type: 'image',
+    //     //   version: 1,
+    //     // };
+    //   }
+
+      exportDOM(editor: LexicalEditor): DOMExportOutput {
+        const {element} = super.exportDOM(editor);
+    
+        if (element && isHTMLElement(element)) {
+        //   if (this.isEmpty()) element.append(document.createElement('br'));
+    
+        //   const formatType = this.getFormatType();
+        //   element.style.textAlign = formatType;
+    
+        //   const direction = this.getDirection();
+        //   if (direction) {
+            // element.dir = direction;
+        //   }
+        }
+    
+        return {
+          element,
+        };
+      }
+    
 
     static importJSON(serializedNode: SerializedImageNode): ImageNode {
         const { payload } = serializedNode;
