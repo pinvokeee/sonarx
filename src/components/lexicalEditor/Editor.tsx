@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useState } from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
 import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin';
@@ -15,8 +15,14 @@ import { LinkNode, AutoLinkNode } from '@lexical/link';
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import "./Editor.css";
 import { PluginToolBar } from './plugins/PluginToolBar';
-import { ImageNode, ImagePlugin } from './plugins/ImageNode';
-import { NoteNode, NotePlugin } from './plugins/NoteNode';
+import { ImageNode, ImagePlugin } from './plugins/nodes/ImageNode';
+import { NoteNode, NotePlugin } from './plugins/nodes/NoteNode';
+import { AutoScroll } from './plugins/AutoScroll';
+import { ReactFlowNode, ReactFlowPlugin } from './plugins/nodes/ReactFlowNode';
+import { ChangeReadOnlyPlugin } from './plugins/ApplyReadOnly';
+import LexicalClickableLinkPlugin from '@lexical/react/LexicalClickableLinkPlugin';
+import { LexicalAutoLinkPlugin } from './plugins/AutoLinkPlugin';
+import { AutoFocus } from './plugins/AutoFocus';
 
 const theme = {
     paragraph: 'editor-paragraph',
@@ -52,7 +58,17 @@ function MyCustomAutoFocusPlugin() {
 
     useEffect(() => {
         // Focus the editor when the effect fires!
+        // console.log(editor.);
         editor.focus();
+        const selection = document.getSelection();
+
+        if (selection && selection.focusNode) {
+            const range = selection.getRangeAt(0);
+            range?.setStart(selection.focusNode, 0);
+        }
+
+        console.log(selection); 
+        
     }, [editor]);
 
     return null;
@@ -65,31 +81,60 @@ function onError(error: any) {
     console.error(error);
 }
 
+const initialConfig = {
+    namespace: 'MyEditor',
+    theme,
+    nodes: [
+        TextNode,
+        ParagraphNode,
+        ListNode,
+        ListItemNode,
+        LinkNode,
+        AutoLinkNode,
+        HeadingNode,
+        QuoteNode,
+        ImageNode,
+        NoteNode,
+        ReactFlowNode,
+    ],
+    onError,
+};
+
+const getComponent = (config : any, onChange?: (editorState: EditorState, editor: LexicalEditor, tags: Set<string>) => void ) => {
+        return (<LexicalComposer initialConfig={config} >
+        <div style={{ display: "grid", gridTemplateRows: "auto 1fr", overflow: "hidden" }}>
+            {/* <ChangeReadOnlyPlugin readonly={props.editable} /> */}
+            <AutoScroll />
+            <LexicalAutoLinkPlugin />
+            { !config.editable && <LexicalClickableLinkPlugin />}
+            { config.editable && <PluginToolBar /> }
+            <ImagePlugin />
+            <NotePlugin />
+            <ReactFlowPlugin />
+            <AutoFocus />
+            <Scroller>
+                <div className='editor'>
+                    <RichTextPlugin
+                        contentEditable={<ContentEditor spellCheck={false} />}
+                        placeholder={<></>}
+                        // placeholder={<div className='editor-placeholder'>Enter some text...</div>}
+                        ErrorBoundary={LexicalErrorBoundary}
+                    />
+                    { onChange && <OnChangePlugin onChange={onChange} /> }
+                    {/* <EditUpdate src={props.value} /> */}
+                    <HistoryPlugin />
+                </div>
+            </Scroller>
+        </div>
+        </LexicalComposer>);
+}
+
 export const LexicalEditorComponent = (props: { value: string, onChange?: (editor: LexicalEditor, editorState: EditorState) => void }) => {
 
-    const initialConfig = {
-        namespace: 'MyEditor',
-        theme,
-        nodes: [
-            TextNode,
-            ParagraphNode,
-            ListNode,
-            ListItemNode,
-            LinkNode,
-            AutoLinkNode,
-            HeadingNode,
-            QuoteNode,
-            ImageNode,
-            NoteNode,
-        ],
+    const config = { ...initialConfig,     
+        editable: true,
         editorState: props.value,
-        onError,
-    };
-
-    // const [st, setState] = useState(props.value);
-
-    // const state = editor.parseEditorState(props.src);
-    // editor.setEditorState(state);
+    }
 
     const onChange = (editorState: EditorState, editor: LexicalEditor, tags: Set<string>) => {
         editorState.read(() => {            
@@ -97,31 +142,17 @@ export const LexicalEditorComponent = (props: { value: string, onChange?: (edito
         });
     }
 
-    return (
-        <>
-            <LexicalComposer initialConfig={initialConfig}>
-                <div style={{ display: "grid", gridTemplateRows: "auto 1fr", overflow: "hidden" }}>
-                    <ImagePlugin />
-                    <NotePlugin />
-                    <PluginToolBar></PluginToolBar>
-                    <Scroller>
-                        <div className='editor'>
-                            <RichTextPlugin
-                                contentEditable={<ContentEditor spellCheck={false} />}
-                                placeholder={<></>}
-                                // placeholder={<div className='editor-placeholder'>Enter some text...</div>}
-                                ErrorBoundary={LexicalErrorBoundary}
-                            />
-                            <OnChangePlugin onChange={onChange} />
-                            {/* <EditUpdate src={props.value} /> */}
-                            <HistoryPlugin />
-                            <MyCustomAutoFocusPlugin />
-                        </div>
-                    </Scroller>
-                </div>
-            </LexicalComposer>
-        </>
-    );
+    return getComponent(config, onChange);
 };
 
-export default {}
+export const LexicalViewerComponent = (props: { value: string } ) => {
+    
+    const config = { ...initialConfig,     
+        editable: false,
+        editorState: props.value,
+    }
+
+    return getComponent(config);
+}
+
+export default { LexicalEditorComponent, LexicalViewerComponent }

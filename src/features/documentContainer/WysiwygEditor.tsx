@@ -1,15 +1,17 @@
 import { LexicalEditor, EditorState } from "lexical";
-import { LexicalEditorComponent } from "../../components/lexicalEditor/Editor";
+import { LexicalEditorComponent, LexicalViewerComponent } from "../../components/lexicalEditor/Editor";
 import { IUseEdit } from "./hook/useEditHook";
 
 export default function WysiwygEditor( props: {
         contentText: string, 
-        onChangeWysiwyg: (editor: LexicalEditor, editorState: EditorState) => void 
+        onChangeWysiwyg: (editor: LexicalEditor, editorState: EditorState) => void,
+        isEditable? : boolean,
     })
 {
-    const { contentText, onChangeWysiwyg } = props;
+    const { contentText, onChangeWysiwyg, isEditable } = props;
 
     return <>
-        <LexicalEditorComponent value={contentText} onChange={onChangeWysiwyg}></LexicalEditorComponent>
+        {  isEditable && <LexicalEditorComponent value={contentText} onChange={onChangeWysiwyg} /> }
+        { !isEditable && <LexicalViewerComponent value={contentText} /> }
     </>
 }

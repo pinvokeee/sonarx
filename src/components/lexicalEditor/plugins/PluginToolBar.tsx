@@ -21,9 +21,10 @@ import {
     mergeRegister,
   } from '@lexical/utils';
 import { ToolBarButton } from './buttons/ToolBarButton';
-import { $createImageNode, INSERT_IMAGE_COMMAND } from './ImageNode';
-import { INSERT_NOTE_COMMAND } from './NoteNode';
+import { $createImageNode, INSERT_IMAGE_COMMAND } from './nodes/ImageNode';
+import { $createNoteNode, INSERT_NOTE_COMMAND } from './nodes/NoteNode';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
+import { INSERT_REACTFLOW_COMMAND } from './nodes/ReactFlowNode';
 
 type EditToolbarProps = {
     // onClick: (value: string) => void,
@@ -118,11 +119,13 @@ export function PluginToolBar(props: EditToolbarProps) {
             if ($isHeadingNode(element)) headerType = element.getTag() as HeadType;
         }
 
-        const textColor = $getSelectionStyleValueForProperty(selection, 'color') ?? "#FFFFFF";
-        const backColor = $getSelectionStyleValueForProperty(selection, 'background-color') ?? "#FFFFFF";
-        const decorations = Object.keys(FormatTypes).map(key => key).filter(key => selection.hasFormat(key as TextFormatType))
-        
-        setTextStyle(style => ({ ...style, headerType, textColor, backColor, decorations }));
+        if ($isRangeSelection(selection)) {
+            const textColor = $getSelectionStyleValueForProperty(selection, 'color') ?? "#FFFFFF";
+            const backColor = $getSelectionStyleValueForProperty(selection, 'background-color') ?? "#FFFFFF";
+            const decorations = Object.keys(FormatTypes).map(key => key).filter(key => selection.hasFormat(key as TextFormatType))
+            
+            setTextStyle(style => ({ ...style, headerType, textColor, backColor, decorations }));
+        }
     }
 
 
@@ -145,38 +148,6 @@ export function PluginToolBar(props: EditToolbarProps) {
 
     }, [enter]);
 
-    const onChange = () => {
-        console.log(enter)
-        if (enter) {
-            const selection = document.getSelection();
-            const element = selection?.focusNode;
-            
-
-            if (element) {
-                
-                let targetTag = element.nodeType == Node.TEXT_NODE ? element.parentElement :
-                element.nodeType == Node.ELEMENT_NODE ? (element as HTMLElement) : null;
-                
-
-                if (targetTag) {
-
-                    while (targetTag != null) {
-                        
-                        if (!targetTag.parentElement) break;
-                        if (Boolean(targetTag.parentElement.dataset.lexicalEditor)) break;
-                        targetTag = targetTag.parentElement;
-                    }
-                }
-
-                // console.log(targetTag, element, element.nodeType, element.parentElement);
-
-                targetTag?.scrollIntoView({behavior: 'smooth', block: 'center'});
-            }
-
-            setEnter(false);
-        }
-    }
-
     useEffect(() => {
         return editor.registerCommand(SELECTION_CHANGE_COMMAND, (_payload, newEditor) => {
 
@@ -189,20 +160,6 @@ export function PluginToolBar(props: EditToolbarProps) {
             COMMAND_PRIORITY_CRITICAL,
         );
     }, [editor, $updateToolbar, enter]);
-
-    useEffect(() => {
-        return editor.registerCommand(KEY_ENTER_COMMAND, (_payload, newEditor) => {
-
-            $updateToolbar();
-            setActiveEditor(newEditor);
-
-            setEnter(true);
-
-            return false;
-        },
-            COMMAND_PRIORITY_CRITICAL,
-        );
-    }, [editor, $updateToolbar]);
 
     useEffect(() => {
         return editor.registerCommand(FORMAT_TEXT_COMMAND, (_payload, newEditor) => {
@@ -245,10 +202,16 @@ export function PluginToolBar(props: EditToolbarProps) {
     }
 
     const handleInsertNode = () => {
-        activeEditor.dispatchCommand(INSERT_NOTE_COMMAND, 
+
+        // activeEditor.dispatchCommand(INSERT_NOTE_COMMAND, 
+        //     {
+        //         text: "TESt",
+        //         type: "success",
+        //     }
+        // );
+
+        activeEditor.dispatchCommand(INSERT_REACTFLOW_COMMAND, 
             {
-                text: "TESt",
-                type: "success",
             }
         );
     }
@@ -340,7 +303,7 @@ export function PluginToolBar(props: EditToolbarProps) {
 
     return <>
         <Toolbar onMouseDown={cancelClick} sx={{ gap: "10px" }}>
-            <OnChangePlugin onChange={onChange}></OnChangePlugin>
+
             <div>
                 <Select  size="small" value={getHeaderType()} onChange={handleHeadChange}>
                     {

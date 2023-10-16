@@ -1,11 +1,20 @@
 .colorpicker.container {
     background-color: white;
-    width: 160px;
+    /* width: 160px; */
     border: solid gray 1px;
     padding: 6px;
 }
 
 .colorpicker.colorcontainer {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    gap: 4px; 
+
+    border: none;
+}
+
+.colorpicker.colorcontainer.line {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -14,8 +23,9 @@
     border: none;
 }
 
-.colorpicker.block{
+
+/* .colorpicker.block{
     width: 16px;
     height: 16px;
     border: none;
-}
+} */

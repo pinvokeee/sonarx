@@ -7,7 +7,7 @@ import {
     NodeKey,
     SerializedLexicalNode,
     Spread,
-    $createParagraphNode, $insertNodes, $isRootOrShadowRoot, COMMAND_PRIORITY_EDITOR, ElementNode, SerializedElementNode, RangeSelection, ParagraphNode, DOMConversionMap, DOMConversionOutput, ElementFormatType,
+    $createParagraphNode, $insertNodes, $isRootOrShadowRoot, COMMAND_PRIORITY_EDITOR, ElementNode, SerializedElementNode, RangeSelection, ParagraphNode, DOMConversionMap, DOMConversionOutput, ElementFormatType, $getSelection, $isRangeSelection,
 } from 'lexical';
 
 import { $applyNodeReplacement, DecoratorNode, createCommand } from 'lexical';
@@ -17,6 +17,7 @@ import { useEffect } from 'react';
 import { $wrapNodeInElement, mergeRegister, isHTMLElement } from '@lexical/utils';
 import { Button, styled } from '@mui/material';
 import ReactDOMServer from 'react-dom/server';
+import { $setBlocksType, $getSelectionStyleValueForProperty, $patchStyleText } from '@lexical/selection';
 
 export type NoteType = "success" | "info" | "warn" | "error";
 
@@ -83,32 +84,19 @@ const NoteNodeElement = (props: { text: string, color: string, contentEditable?:
     return <NoteBase contentEditable={props.contentEditable ?? false} style={{ backgroundColor: props.color }}>{props.text}</NoteBase>
 }
 
-export function addClassNamesToElement(
-    element: HTMLElement,
-    ...classNames: Array<typeof undefined | boolean | null | string>
-): void {
-    classNames.forEach((className) => {
-        if (typeof className === 'string') {
-            const classesToAdd = className.split(' ').filter((n) => n !== '');
-            element.classList.add(...classesToAdd);
-        }
-    });
-}
-
-function convertBlockNoteElement(element: HTMLElement): DOMConversionOutput {
+function convertNoteElement(element: HTMLElement): DOMConversionOutput {
     const node = $createNoteNode();
-    // if (element.style !== null) {
-    //   node.setFormat(element.style.textAlign as ElementFormatType);
-    // }
     return { node };
 }
 
-export type SerializedNoteNode = SerializedElementNode;
+export interface SerializedNoteNode extends SerializedElementNode {
+
+};
 
 export class NoteNode extends ElementNode {
 
     static getType(): string {
-        return 'quote';
+        return 'note';
     }
 
     static clone(node: NoteNode): NoteNode {
@@ -122,18 +110,21 @@ export class NoteNode extends ElementNode {
     // View
 
     createDOM(config: EditorConfig): HTMLElement {
-        const element = document.createElement('blockquote');
-        addClassNamesToElement(element, config.theme.quote);
+        const element = document.createElement('div');
+        element.style.backgroundColor = palette["success"];
+        element.style.padding = "6px";
+        // addClassNamesToElement(element, config.theme.quote);
         return element;
     }
+    
     updateDOM(prevNode: NoteNode, dom: HTMLElement): boolean {
         return false;
     }
 
     static importDOM(): DOMConversionMap | null {
         return {
-            blockquote: (node: Node) => ({
-                conversion: convertBlockNoteElement,
+            note: (node: Node) => ({
+                conversion: convertNoteElement,
                 priority: 0,
             }),
         };
@@ -214,12 +205,19 @@ export const NotePlugin = () => {
         return mergeRegister(
             editor.registerCommand<InsertNotePayload>(INSERT_NOTE_COMMAND, (payload) => {
 
-                const noteNode = $createNoteNode();
-                $insertNodes([noteNode]);
+                editor.update(() => {
+                    const selection = $getSelection();
+                    if ($isRangeSelection(selection)) $setBlocksType(selection, () => $createNoteNode());   
+                });
 
-                if ($isRootOrShadowRoot(noteNode.getParentOrThrow())) {
-                    $wrapNodeInElement(noteNode, $createParagraphNode).selectEnd();
-                }
+                // const noteNode = $createNoteNode();
+                // $insertNodes([noteNode]);
+
+                // if ($isRootOrShadowRoot(noteNode.getParentOrThrow())) {
+                //     $wrapNodeInElement(noteNode, $createParagraphNode).selectEnd();
+                // }
+
+                // return true;
 
                 return true;
             },

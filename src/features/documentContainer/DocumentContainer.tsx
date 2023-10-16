@@ -7,6 +7,7 @@ import { PropertyEditor } from "./PropertyEditor";
 import { useWysiwygState } from "./hook/useWysiwyg";
 import { useEditHook } from "./hook/useEditHook";
 import WysiwygEditor from "./WysiwygEditor";
+import Flow from "./FlowEditor";
 
 const Container = styled("div")(({theme}) => (
     {
@@ -32,7 +33,7 @@ const EditContainer = styled("div")(({theme}) => (
     }
 ));
 
-const _DocumentContainer = ( props: { documentId: string } ) => {
+export const DocumentContainer = ( props: { documentId: string } ) => {
 
     const useEdit = useEditHook( { documentId: props.documentId });
     const { isEditableMode, applyDocumentPage, editPage, content: contentText, onChange, onChangeWysiwyg, isTemporarySaving } = useEdit;
@@ -43,8 +44,12 @@ const _DocumentContainer = ( props: { documentId: string } ) => {
 
     const getEditComponent = (type: string) => {
 
+        if (type == "flow") return (
+            <Flow></Flow>
+        );
+        
         if (type == "lexHtml") return (
-            <WysiwygEditor contentText={contentText.text} onChangeWysiwyg={onChangeWysiwyg}></WysiwygEditor>
+            <WysiwygEditor contentText={contentText.text} isEditable={isEditableMode} onChangeWysiwyg={onChangeWysiwyg}></WysiwygEditor>
         );
         
         if (type == "html") return (
@@ -56,22 +61,25 @@ const _DocumentContainer = ( props: { documentId: string } ) => {
     // const isEditableMode = false;
     // const editPage = { contentType: "html" };
 
-    if (isEditableMode) {
+    // if (isEditableMode) {
 
         if (editPage == undefined) return <></>
 
         return <>
         <EditContainer>
             { getEditComponent(editPage.contentType) }
-            <PropertyEditor key={editPage.id} page={editPage} onSave={handleSaveProperty}></PropertyEditor>
+            { isEditableMode ?
+                <PropertyEditor key={editPage.id} page={editPage} onSave={handleSaveProperty}></PropertyEditor>
+                : <></>
+            }
         </EditContainer>
         </>
-    }
+    // }
 
-    return <Container>
-        <DocumentView srcDoc={ editPage?.contentType == "lexHtml" ? editPage.html : editPage?.text}></DocumentView>
-    </Container>
+    // return <Container>
+    //     <DocumentView srcDoc={ editPage?.contentType == "lexHtml" ? editPage.html : editPage?.text}></DocumentView>
+    // </Container>
 }
 
 
-export const DocumentContainer = memo(_DocumentContainer);
+// export const DocumentContainer = memo(_DocumentContainer);

@@ -34,9 +34,9 @@ export default function ToolBarButtonColorPicker( props:
         setModal(false);
     }
     
-    const handleChangeColor = (color: string) => {
+    const handleChangeColor = (color: string, isComplete: boolean) => {
         props.onChangeColor?.call(undefined, color);
-        setModal(false);
+        if (isComplete) setModal(false);
     }
 
     return (
