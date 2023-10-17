@@ -31,20 +31,29 @@ export type ImagePayload = {
 
 export type SerializedImageNode = Spread<{ payload: ImagePayload }, SerializedLexicalNode>;
 
-const ResizeHandle = (props: { children: React.ReactNode }) => {
+const ResizeHandle = (props: { children: React.ReactNode, onResize?: (newWidth: number, newHeight: number) => void }) => {
 
-    const [drag, setDrag] = useState(false);
+    const [dragState, setDragState] = useState<{ isDrag: boolean, x: number, y: number }>({ isDrag: false, x: 0, y: 0 });
 
-    const handleDragStart = () => {
-        setDrag(true);
+    const handleDragStart = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        setDragState(state => ({...state, isDrag: true, x: e.screenX, y: e.screenY}) );
     }
 
-    const handleDragOver = () => {
-        setDrag(false);
+    const handleDragOver = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+        setDragState(state => ({...state, isDrag: false, x: e.screenX, y: e.screenY}) );
     }
 
-    const handleDrag = () => {
-        console.log(drag);
+    const handleDrag = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+
+        if (dragState.isDrag) {
+
+            const newX = e.screenX, newY = e.screenY;
+            const oldX = dragState.x, oldY = dragState.y;
+
+            console.log(newX - oldX, newY - oldY);
+
+            props.onResize?.call(undefined, newX - oldX, newY - oldY);
+        }
     }
 
     return <div style={{ width:"fit-content" , position: "relative" }}>
@@ -54,7 +63,7 @@ const ResizeHandle = (props: { children: React.ReactNode }) => {
     </div>
 }
 
-const ImageComponent = (props: { src: string }) => {
+const ImageComponent = (props: { src: string, width?: number, height?: number, onResize?: (width: number, height: number) => void }) => {
  
     const r = useRef<HTMLDivElement>(null);
     const [isFocus, setFocus] = useState(false);
@@ -62,11 +71,15 @@ const ImageComponent = (props: { src: string }) => {
     const focus = () => setFocus(true);
     const blur = () => setFocus(false);
 
+    const handleResize = (x: number, y: number) => {
+        if (props.onResize) props.onResize(x, y);
+    }
+
     return <>
         {/* <div ref={r} tabIndex={0} onFocus={focus} onBlur={blur}> */}
-        <ResizeHandle>
+        <ResizeHandle onResize={handleResize}>
             <div>
-            <img src={props.src} style={{ width: "100%", height: "100%", verticalAlign: "middle", }}></img>
+                <img src={props.src} style={{ width: props.width, height: props.height, verticalAlign: "middle", }}></img>
             </div>
 
         </ResizeHandle>
@@ -84,7 +97,7 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
         super(payload.key);
         // console.log(payload);
         // this.payload = { src, alt, imageTypeSoruce: sourceType, width, height, key };
-        this.payload = { ...payload };
+        this.payload = { ...payload,  };
     }
 
     createDOM(config: EditorConfig): HTMLElement {
@@ -104,25 +117,28 @@ export class ImageNode extends DecoratorNode<JSX.Element> {
 
     decorate(): JSX.Element {
 
-        const { src, imageTypeSoruce } = this.payload;
+        const { src, imageTypeSoruce, width, height } = this.payload;
         const s = imageTypeSoruce == 'base64' ? `data:image/png;${src}` : src;
 
-        return <ImageComponent src={s} />
+        return (<BlockWithAlignableContents format={''} nodeKey={this.getKey()}
+            className={{
+                base: 'relative',
+                focus: 'relative outline outline-indigo-300'
+            }}>
 
-        // return <img style={{ userSelect: "none" }} src=
-        //             {this.payload.imageTypeSoruce == 'base64' ? `data:image/png;${this.payload.src}` : this.payload.src}>
-        //         </img>
+                <ImageComponent src={s} width={width} height={height} onResize={this.handleResize} />
+                {/* <img src=
+                    {this.payload.imageTypeSoruce == 'base64' ? `data:image/png;${this.payload.src}` : this.payload.src}>
+                </img> */}
 
-        // return <BlockWithAlignableContents format={''} nodeKey={this.getKey()}
-        //     className={{
-        //         base: 'relative',
-        //         focus: 'relative outline outline-indigo-300'
-        //     }}>
-        //         <img src=
-        //             {this.payload.imageTypeSoruce == 'base64' ? `data:image/png;${this.payload.src}` : this.payload.src}>
-        //         </img>
+        </BlockWithAlignableContents>);
+    }
 
-        // </BlockWithAlignableContents>
+    handleResize = (x: number, y: number) => {
+        console.log(this);
+        this.payload.width = (this.payload.width ?? 0) + x;
+        this.payload.height = (this.payload.height ?? 0) + y;
+        // this.payload = { ...this.payload, width: (this.payload.width ?? 0) + x, height: (this.payload.height ?? 0) + y };
     }
 
     exportJSON(): SerializedImageNode {
@@ -226,6 +242,25 @@ export const imageBinToBase64 = (file: File): Promise<string> => {
     });
 }
 
+export const imageBinToBase64Size = (file: File): Promise<{ base64 : string, width: number, height: number }> => {
+    return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        
+        fr.onloadend = async () => {
+
+            const img = new Image();
+            img.onload = () => {
+                resolve(({ base64: img.src, width: img.naturalWidth, height: img.naturalHeight }))
+            }
+
+            img.src = fr.result as string ?? "";
+        }
+
+        fr.readAsDataURL(file);
+    });
+}
+
+
 const createImagePayloadFromImageElement = (img: HTMLImageElement) : ImagePayload => {
     return {
         src: img.src,
@@ -258,14 +293,14 @@ export const ImagePlugin = () => {
             const file = files[0].name;
             // const bin = files.map(async (file) => await imageBinToBase64(file));
 
-
-
-            imageBinToBase64(files[0]).then(src => {
+            imageBinToBase64Size(files[0]).then(result => {
                 editor.dispatchCommand(INSERT_IMAGE_COMMAND,
                     {
                         alt: file,
                         imageTypeSoruce: "base64",
-                        src,
+                        src: result.base64,
+                        width: result.width,
+                        height: result.height,
                     }
                 );
             })
